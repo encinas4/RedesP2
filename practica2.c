@@ -8,19 +8,7 @@
  Autor: Jose Luis Garcia Dorado, Jorge E. Lopez de Vergara Mendez, Rafael Leira, Javier Ramos
  2018 EPS-UAM
 ***************************************************************************/
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <pcap.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <linux/udp.h>
-#include <linux/tcp.h>
-#include <signal.h>
-#include <time.h>
-#include <getopt.h>
-#include <inttypes.h>
+#include "practica2.h"
 
 /*Definicion de constantes *************************************************/
 #define ETH_ALEN      6      /* Tamanio de la direccion ethernet           */
@@ -38,10 +26,8 @@
 #define BREAKLOOP -2
 #define NO_FILTER 0
 #define NO_LIMIT -1
+
 void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t *pack);
-
-
-
 void handleSignal(int nsignal);
 
 pcap_t *descr = NULL;
@@ -61,13 +47,13 @@ void handleSignal(int nsignal)
 
 int main(int argc, char **argv)
 {
-	
+
 
 	char errbuf[PCAP_ERRBUF_SIZE];
-	
+
 	int long_index = 0, retorno = 0;
 	char opt;
-	
+
 	(void) errbuf; //indicamos al compilador que no nos importa que errbuf no se utilice. Esta linea debe ser eliminada en la entrega final.
 
 	if (signal(SIGINT, handleSignal) == SIG_ERR) {
@@ -103,7 +89,7 @@ int main(int argc, char **argv)
 			printf("Descomente el código para leer y abrir de una interfaz\n");
 			exit(ERROR);
 
-		
+
 			//if ( (descr = ??(optarg, ??, ??, ??, errbuf)) == NULL){
 			//	printf("Error: ??(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
 			//	exit(ERROR);
@@ -198,10 +184,10 @@ int main(int argc, char **argv)
 		case OK:
 			printf("Traza leída\n");
 			break;
-		case PACK_ERR: 
+		case PACK_ERR:
 			printf("Error leyendo paquetes\n");
 			break;
-		case BREAKLOOP: 
+		case BREAKLOOP:
 			printf("pcap_breakloop llamado\n");
 			break;
 	}
@@ -241,8 +227,7 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	// .....
 	// .....
 	// .....
-	
-	printf("\n\n");
-	
-}
 
+	printf("\n\n");
+
+}
