@@ -10,23 +10,6 @@
 ***************************************************************************/
 #include "practica2.h"
 
-/*Definicion de constantes *************************************************/
-#define ETH_ALEN      6      /* Tamanio de la direccion ethernet           */
-#define ETH_HLEN      14     /* Tamanio de la cabecera ethernet            */
-#define ETH_TLEN      2      /* Tamanio del campo tipo ethernet            */
-#define ETH_FRAME_MAX 1514   /* Tamanio maximo la trama ethernet (sin CRC) */
-#define ETH_FRAME_MIN 60     /* Tamanio minimo la trama ethernet (sin CRC) */
-#define ETH_DATA_MAX  (ETH_FRAME_MAX - ETH_HLEN) /* Tamano maximo y minimo de los datos de una trama ethernet*/
-#define ETH_DATA_MIN  (ETH_FRAME_MIN - ETH_HLEN)
-#define IP_ALEN 4			/* Tamanio de la direccion IP					*/
-#define OK 0
-#define ERROR 1
-#define PACK_READ 1
-#define PACK_ERR -1
-#define BREAKLOOP -2
-#define NO_FILTER 0
-#define NO_LIMIT -1
-
 void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t *pack);
 void handleSignal(int nsignal);
 
@@ -37,18 +20,14 @@ uint8_t ipdst_filter[IP_ALEN] = {NO_FILTER};
 uint16_t sport_filter= NO_FILTER;
 uint16_t dport_filter = NO_FILTER;
 
-void handleSignal(int nsignal)
-{
+void handleSignal(int nsignal){
 	(void) nsignal; // indicamos al compilador que no nos importa que nsignal no se utilice
 
 	printf("Control C pulsado\n");
 	pcap_breakloop(descr);
 }
 
-int main(int argc, char **argv)
-{
-
-
+int main(int argc, char **argv){
 	char errbuf[PCAP_ERRBUF_SIZE];
 
 	int long_index = 0, retorno = 0;
@@ -78,22 +57,21 @@ int main(int argc, char **argv)
 	};
 
 	//Simple lectura por parametros por completar casos de error, ojo no cumple 100% los requisitos del enunciado!
-	while ((opt = getopt_long_only(argc, argv, "f:i:1:2:3:4:5", options, &long_index)) != -1) {
-		switch (opt) {
+	while( (opt = getopt_long_only(argc, argv, "f:i:1:2:3:4:5", options, &long_index)) != -1){
+		switch( opt ){
 		case 'i' :
 			if(descr) { // comprobamos que no se ha abierto ninguna otra interfaz o fichero
 				printf("Ha seleccionado más de una fuente de datos\n");
 				pcap_close(descr);
 				exit(ERROR);
 			}
-			printf("Descomente el código para leer y abrir de una interfaz\n");
-			exit(ERROR);
+			
+			/* abrimos la interfaz */
+			if ( (descr = pcap_open_live(optarg, *argv[1], 1, 100, errbuf)) == NULL){
+				printf("Error: pcap_open_live(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
+				exit(ERROR);
+			}
 
-
-			//if ( (descr = ??(optarg, ??, ??, ??, errbuf)) == NULL){
-			//	printf("Error: ??(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
-			//	exit(ERROR);
-			//}
 			break;
 
 		case 'f' :
@@ -102,15 +80,15 @@ int main(int argc, char **argv)
 				pcap_close(descr);
 				exit(ERROR);
 			}
-			printf("Descomente el código para leer y abrir una traza pcap\n");
-			exit(ERROR);
 
-			//if ((descr = pcap_open_offline(optarg, errbuf)) == NULL) {
-			//	printf("Error: pcap_open_offline(): File: %s, %s %s %d.\n", optarg, errbuf, __FILE__, __LINE__);
-			//	exit(ERROR);
-			//}
+			/* Abrimos la traza */
+			if ((descr = pcap_open_offline(optarg, errbuf)) == NULL) {
+				printf("Error: pcap_open_offline(): File: %s, %s %s %d.\n", optarg, errbuf, __FILE__, __LINE__);
+				exit(ERROR);
+			}
 
 			break;
+
 
 		case '1' :
 			if (sscanf(optarg, "%"SCNu8".%"SCNu8".%"SCNu8".%"SCNu8"", &(ipsrc_filter[0]), &(ipsrc_filter[1]), &(ipsrc_filter[2]), &(ipsrc_filter[3])) != IP_ALEN) {
@@ -197,16 +175,16 @@ int main(int argc, char **argv)
 }
 
 
-
-void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t *pack)
-{
+void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t *pack){
 	(void)user;
 	printf("Nuevo paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
 	contador++;
 	int i = 0;
+	char protocAux[5];
+	
+	/* Se imprime la direccion de enlace de destino*/
 	printf("Direccion ETH destino= ");
 	printf("%02X", pack[0]);
-
 	for (i = 1; i < ETH_ALEN; i++) {
 		printf("-%02X", pack[i]);
 	}
@@ -214,19 +192,32 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	printf("\n");
 	pack += ETH_ALEN;
 
+	/* Se imprime la direccíon de enlace de origen*/
 	printf("Direccion ETH origen = ");
 	printf("%02X", pack[0]);
-
 	for (i = 1; i < ETH_ALEN; i++) {
-		printf(":%02X", pack[i]);
+		printf("-%02X", pack[i]);
 	}
 
 	printf("\n");
 
-	//pack+=ETH_ALEN;
-	// .....
-	// .....
-	// .....
+	pack+=ETH_ALEN;
+	printf("Tipo de protocolo encapsulado = ");
+	for (i=0; i < ETH_TLEN; i++){
+		printf("%02X", pack[i]);
+	}
+	printf("\n");
+
+	sprintf(protocAux,"%02X",pack[0]);
+	strcat(protocAux,&pack[1]);
+	printf("protocAux: %s\n", protocAux);
+
+	
+	if(strcmp(protocAux,"0800")!=0){
+		printf("El protocolo encapsulado no es IPv4.\n");
+		return;
+	}
+	
 
 	printf("\n\n");
 
