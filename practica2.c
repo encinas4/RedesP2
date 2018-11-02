@@ -181,6 +181,8 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	contador++;
 	int i = 0;
 	char protocAux[5];
+	char protocAux2[5];
+	uint16_t desplAux;
 	
 	/* Se imprime la direccion de enlace de destino*/
 	printf("Direccion ETH destino= ");
@@ -201,6 +203,7 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 
 	printf("\n");
 
+	/* Se imprime el tipo de protocolo */
 	pack+=ETH_ALEN;
 	printf("Tipo de protocolo encapsulado = ");
 	for (i=0; i < ETH_TLEN; i++){
@@ -208,17 +211,47 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	}
 	printf("\n");
 
+	/* Comprobamos si es IPv4 ayundandonos de dos strings */
 	sprintf(protocAux,"%02X",pack[0]);
-	strcat(protocAux,&pack[1]);
-	printf("protocAux: %s\n", protocAux);
-
+	sprintf(protocAux2, "%02X",pack[1]);
+	strcat(protocAux,protocAux2);
 	
+	/* Si es IPv4 deja de imprimir campos*/
 	if(strcmp(protocAux,"0800")!=0){
 		printf("El protocolo encapsulado no es IPv4.\n");
 		return;
 	}
-	
 
-	printf("\n\n");
+	/* Se imprime la version */
+	pack+=ETH_TLEN;
+	printf("Version IP: %d\n", pack[0]>>4);
 
+	/* Se imprime la longitud de cabecera */
+	printf("Longitud de la cabecera: %d\n", pack[0] & 0b00001111);
+
+	/* Se imprime la longitud total */
+	printf("Longitud Total: %d", pack[2]);
+	printf("%d\n", pack[3]);
+	pack+=IP_ALEN;
+
+	for(i=0 ; i<IP_ALEN; i++){	
+		printf("%02X\n",pack[i]);
+	}
+
+	/* Se imprime la desplazamiento */
+	memcpy(&desplAux,  &pack[2], sizeof(uint8_t));
+	memcpy(&desplAux + sizeof(uint8_t),  &pack[3], sizeof(uint8_t));
+	printf("sin htons:%d\n",desplAux);
+	/*desplAux = htons(desplAux);*/
+	printf("conhtons:%d\n",desplAux);
+	printf("Desplazamineto:%d\n", desplAux);
+	/* Se imprime la tiempo de vida */
+
+	/* Se imprime protocolo */
+
+	/* Se imprime la direcciones ip(origen y dest) formato 192.168.1.0 */
+
+	for(i=0 ; i<IP_ALEN; i++){	
+		printf("%02X\n",pack[i]);
+	}
 }
