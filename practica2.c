@@ -182,16 +182,18 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	int i = 0;
 	char protocAux[5];
 	char protocAux2[5];
-	uint16_t desplAux;
-	
+	uint16_t memcpyAux;
+	uint8_t ihl, protocolo;
+
+
 	/* Se imprime la direccion de enlace de destino*/
 	printf("Direccion ETH destino= ");
 	printf("%02X", pack[0]);
 	for (i = 1; i < ETH_ALEN; i++) {
 		printf("-%02X", pack[i]);
 	}
-
 	printf("\n");
+	
 	pack += ETH_ALEN;
 
 	/* Se imprime la direccíon de enlace de origen*/
@@ -200,7 +202,6 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	for (i = 1; i < ETH_ALEN; i++) {
 		printf("-%02X", pack[i]);
 	}
-
 	printf("\n");
 
 	/* Se imprime el tipo de protocolo */
@@ -222,36 +223,110 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 		return;
 	}
 
+
+	/* Imprimimos campos de nivel 3 */
 	/* Se imprime la version */
 	pack+=ETH_TLEN;
 	printf("Version IP: %d\n", pack[0]>>4);
+	ihl = pack[0] & 0b00001111;
+	ihl *= 4;
 
 	/* Se imprime la longitud de cabecera */
 	printf("Longitud de la cabecera: %d\n", pack[0] & 0b00001111);
 
 	/* Se imprime la longitud total */
-	printf("Longitud Total: %d", pack[2]);
-	printf("%d\n", pack[3]);
+	if( memcpy(&memcpyAux,  &pack[2], sizeof(uint16_t)) == NULL ){
+		printf("Fallo copia de memoria para memcpyAux en longitud total .\n");
+		return;
+	}
+	printf("Longitud Total: %d \n", ntohs(memcpyAux) );
+
 	pack+=IP_ALEN;
 
-	for(i=0 ; i<IP_ALEN; i++){	
-		printf("%02X\n",pack[i]);
+	/* Se imprime la desplazamiento */
+	if( memcpy(&memcpyAux,  &pack[2], sizeof(uint16_t)) == NULL ){
+		printf("Fallo copia de memoria para memcpyAux en desplazamiento .\n");
+		return;
+	}
+	memcpyAux = ntohs(memcpyAux) & 0b0001111111111111;
+	printf("Desplazamiento: %d \n", memcpyAux );
+	if( memcpyAux != 0 ){
+		printf("Dado que el desplazamiento es distinto de 0 no analizaremos los campos del siguiente nivel\n");
+		return;
 	}
 
-	/* Se imprime la desplazamiento */
-	memcpy(&desplAux,  &pack[2], sizeof(uint8_t));
-	memcpy(&desplAux + sizeof(uint8_t),  &pack[3], sizeof(uint8_t));
-	printf("sin htons:%d\n",desplAux);
-	/*desplAux = htons(desplAux);*/
-	printf("conhtons:%d\n",desplAux);
-	printf("Desplazamineto:%d\n", desplAux);
+	pack+=IP_ALEN;
+
 	/* Se imprime la tiempo de vida */
+	printf("Tiempo de vida: %d \n", pack[0]);
 
 	/* Se imprime protocolo */
+	protocolo = pack[1];
+	printf("Protocolo: %d \n", protocolo );
+	if( pack[1]!=17 && pack[1]!=6 ){
+		printf("El protocolo no es ni UDP ni TCP con lo que los siguientes niveles no seran analizados.\n");
+		return;
+	}
+
+	pack+=IP_ALEN;
 
 	/* Se imprime la direcciones ip(origen y dest) formato 192.168.1.0 */
+	printf("Direccion IP origen = ");
+	printf("%d", pack[0]);
+	for (i = 1; i < IP_ALEN; i++) {
+		printf(".%d", pack[i]);
+	}
+	printf("\n");
 
+	pack+=IP_ALEN;
+	printf("Direccion IP destino = ");
+	printf("%d", pack[0]);
+	for (i = 1; i < IP_ALEN; i++) {
+		printf(".%d", pack[i]);
+	}
+	printf("\n");
+
+	/* Imprimimos los campos del nivel 4 */
+	if( ihl-IP_ALEN*5 == 0 ){
+		/* el campo opciones y relleno no estan presentes en el paquete*/
+		pack+=IP_ALEN;
+	}else{
+		pack+=IP_ALEN*2;
+	}
+
+	/* se imprime el numero de puerto de origen y puerto de destino */
+	if( memcpy(&memcpyAux,  &pack[0], sizeof(uint16_t)) == NULL ){
+		printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
+		return;
+	}
+	printf("puerto origen : %d \n", ntohs(memcpyAux) );
+
+	pack+=IP_ALEN;
+
+	if( memcpy(&memcpyAux,  &pack[1], sizeof(uint16_t)) == NULL ){
+		printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
+		return;
+	}
+	printf("puerto destino : %d \n", ntohs(memcpyAux) );
+
+	if( protocolo == 6 ){	/* caso TCP */
+
+		/* mostrar los valores de las banderas SYN y FIN */
+
+
+	}else{	/* caso UDP */
+
+		/* mostrar el campo longitud en decimal */
+
+	}
+
+
+
+
+
+/*
 	for(i=0 ; i<IP_ALEN; i++){	
 		printf("%02X\n",pack[i]);
 	}
+*/
 }
