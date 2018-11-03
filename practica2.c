@@ -177,7 +177,7 @@ int main(int argc, char **argv){
 
 void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t *pack){
 	(void)user;
-	printf("Nuevo paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
+	printf("\nNuevo paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
 	contador++;
 	int i = 0;
 	char protocAux[5];
@@ -243,7 +243,7 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 
 	pack+=IP_ALEN;
 
-	/* Se imprime la desplazamiento */
+	/* Se imprime el desplazamiento */
 	if( memcpy(&memcpyAux,  &pack[2], sizeof(uint16_t)) == NULL ){
 		printf("Fallo copia de memoria para memcpyAux en desplazamiento .\n");
 		return;
@@ -301,32 +301,30 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	}
 	printf("puerto origen : %d \n", ntohs(memcpyAux) );
 
-	pack+=IP_ALEN;
-
-	if( memcpy(&memcpyAux,  &pack[1], sizeof(uint16_t)) == NULL ){
+	if( memcpy(&memcpyAux,  &pack[2], sizeof(uint16_t)) == NULL ){
 		printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
 		return;
 	}
 	printf("puerto destino : %d \n", ntohs(memcpyAux) );
 
+	pack+=IP_ALEN;
+
 	if( protocolo == 6 ){	/* caso TCP */
-
 		/* mostrar los valores de las banderas SYN y FIN */
+		pack+=IP_ALEN*2;
 
 
-	}else{	/* caso UDP */
+	}else if(protocolo == 17){	/* caso UDP */
+		/*Mostrar el campo longitud*/
+		pack+=IP_ALEN;
+		printf("Longitud: ");
+		for(i=0; i<IP_ALEN*2; i++) {
+			printf("%d", pack[i]);
+		}
+		printf("\n");
 
-		/* mostrar el campo longitud en decimal */
-
+	} else {
+		printf("No es el protocolo esperado de nivel 4 por lo tanto no se analizaran los siguientes niveles \n");
+		return;
 	}
-
-
-
-
-
-/*
-	for(i=0 ; i<IP_ALEN; i++){	
-		printf("%02X\n",pack[i]);
-	}
-*/
 }
