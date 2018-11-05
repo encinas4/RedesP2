@@ -232,7 +232,7 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	ihl *= 4;
 
 	/* Se imprime la longitud de cabecera */
-	printf("Longitud de la cabecera: %d\n", pack[0] & 0b00001111);
+	printf("Longitud de la cabecera: %d(%d)\n", pack[0] & 0b00001111, ihl);
 
 	/* Se imprime la longitud total */
 	if( memcpy(&memcpyAux,  &pack[2], sizeof(uint16_t)) == NULL ){
@@ -312,19 +312,20 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	if( protocolo == 6 ){	/* caso TCP */
 		/* mostrar los valores de las banderas SYN y FIN */
 		pack+=IP_ALEN*2;
-
-
-	}else if(protocolo == 17){	/* caso UDP */
-		/*Mostrar el campo longitud*/
-		pack+=IP_ALEN;
-		printf("Longitud: ");
-		for(i=0; i<IP_ALEN*2; i++) {
-			printf("%d", pack[i]);
+		if( (pack[1] & 0b00000010)== 2){
+			printf("SYN: 1\n");	
+		}else{
+			printf("SYN: 0\n");	
 		}
-		printf("\n");
 
-	} else {
-		printf("No es el protocolo esperado de nivel 4 por lo tanto no se analizaran los siguientes niveles \n");
-		return;
+		printf("FIN: %d\n", pack[1] & 0b00000001);
+
+	}else{	/* caso UDP */
+		/*Mostrar el campo longitud*/
+		if( memcpy(&memcpyAux,  &pack[0], sizeof(uint16_t)) == NULL ){
+			printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
+			return;
+		}
+		printf("Longitud: %d\n", ntohs(memcpyAux));
 	}
 }
