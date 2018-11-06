@@ -20,6 +20,7 @@ uint8_t ipdst_filter[IP_ALEN] = {NO_FILTER};
 uint16_t sport_filter= NO_FILTER;
 uint16_t dport_filter = NO_FILTER;
 
+
 void handleSignal(int nsignal){
 	(void) nsignal; // indicamos al compilador que no nos importa que nsignal no se utilice
 
@@ -184,6 +185,10 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	char protocAux2[5];
 	uint16_t memcpyAux;
 	uint8_t ihl, protocolo;
+	uint8_t ipsrc_filter_aux[IP_ALEN] = {NO_FILTER};
+	/*uint8_t ipdst_filter_aux[IP_ALEN] = {NO_FILTER};
+	uint16_t sport_filter_aux = NO_FILTER;
+	uint16_t dport_filter_aux = NO_FILTER;*/
 
 
 	/* Se imprime la direccion de enlace de destino*/
@@ -270,7 +275,20 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 
 	pack+=IP_ALEN;
 
-	/* Se imprime la direcciones ip(origen y dest) formato 192.168.1.0 */
+	/* Se guarda la ip origen que se va a comparar con la ip origen del filtro*/
+	ipsrc_filter_aux[0]=pack[0];
+	for (i = 1; i < IP_ALEN; i++) {
+		ipsrc_filter_aux[i] = pack[i];
+	}
+
+	/* Se imprime la direcciones ip(origen y dest) formato 192.168.1.0 si coincide con el filtro o no hay*/
+	if( ipsrc_filter[0] != 0 && ipsrc_filter[1] != 0 && ipsrc_filter[2] != 0 && ipsrc_filter[3] != 0) {
+		if(ipsrc_filter[0] != ipsrc_filter_aux[0] || ipsrc_filter[1] != ipsrc_filter_aux[1] || ipsrc_filter[2] != ipsrc_filter_aux[2] || ipsrc_filter[3] != ipsrc_filter_aux[3]){
+			printf("Las ip de origen no coincide con la ip origen del filtro\n");
+			return;
+		}
+	}
+
 	printf("Direccion IP origen = ");
 	printf("%d", pack[0]);
 	for (i = 1; i < IP_ALEN; i++) {
