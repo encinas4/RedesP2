@@ -285,6 +285,12 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	if( ipsrc_filter[0] != 0 && ipsrc_filter[1] != 0 && ipsrc_filter[2] != 0 && ipsrc_filter[3] != 0) {  	 /*Si no son todos 0 (caso en el que se le indica ningun filtro ipo)*/
 		if(ipsrc_filter[0] != ipsrc_filter_aux[0] || ipsrc_filter[1] != ipsrc_filter_aux[1] || ipsrc_filter[2] != ipsrc_filter_aux[2] || ipsrc_filter[3] != ipsrc_filter_aux[3]){ /*Si el filtro es diferente de la ip*/
 			printf("Las ip de origen no coincide con la ip origen del filtro\n");
+			printf("Direccion IP origen = ");
+			printf("%d", pack[0]);
+			for (i = 1; i < IP_ALEN; i++) {
+				printf(".%d", pack[i]);
+			}
+			printf("\n");
 			return;
 		}
 	}
@@ -307,7 +313,12 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	/* Se imprime la direccion ip(dest) formato 192.168.1.0 si coincide con el filtro o no hay*/
 	if( ipdst_filter[0] != 0 && ipdst_filter[1] != 0 && ipdst_filter[2] != 0 && ipdst_filter[3] != 0) {  	 /*Si no son todos 0 (caso en el que se le indica ningun filtro ipo)*/
 		if(ipdst_filter[0] != ipdst_filter_aux[0] || ipdst_filter[1] != ipdst_filter_aux[1] || ipdst_filter[2] != ipdst_filter_aux[2] || ipdst_filter[3] != ipdst_filter_aux[3]){ /*Si el filtro es diferente de la ip*/
-			printf("Las ip de destino no coincide con la ip destino del filtro\n");
+			printf("Direccion IP destino = ");
+			printf("%d", pack[0]);
+			for (i = 1; i < IP_ALEN; i++) {
+				printf(".%d", pack[i]);
+			}
+			printf("\n");
 			return;
 		}
 	}
@@ -334,7 +345,12 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	/* Se imprime el puerto origen si coincide con el puerto origen del filtro o no se ha introducido nada*/
 	if( sport_filter != 0) {
 		if(sport_filter_aux != sport_filter){
-			printf("El puerto origen no coincide con el puerto origen del filtro\n");
+			/* se imprime el numero de puerto de origen*/
+			if( memcpy(&memcpyAux,  &pack[0], sizeof(uint16_t)) == NULL ){
+				printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
+				return;
+			}
+			printf("puerto origen : %d \n", ntohs(memcpyAux) );
 			return;
 		}
 	}
@@ -353,7 +369,11 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	/* Se imprime el puerto destino si coincide con el puerto destino del filtro o no se ha introducido nada*/
 	if( dport_filter != 0) {
 		if(dport_filter_aux != dport_filter){
-			printf("El puerto destino no coincide con el puerto destino del filtro\n");
+			if( memcpy(&memcpyAux,  &pack[2], sizeof(uint16_t)) == NULL ){
+				printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
+				return;
+			}
+			printf("puerto destino : %d \n", ntohs(memcpyAux) );
 			return;
 		}
 	}
