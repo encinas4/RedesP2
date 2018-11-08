@@ -4,6 +4,8 @@
  Debe complatarse con mas campos de niveles 2, 3, y 4 tal como se pida en el enunciado.
  Debe tener capacidad de dejar de analizar paquetes de acuerdo a un filtro.
 
+ Alumnos: Javier Encinas Cortes e Ines Fernandez Campos 
+
  Compila: gcc -Wall -o practica2 practica2.c -lpcap, make
  Autor: Jose Luis Garcia Dorado, Jorge E. Lopez de Vergara Mendez, Rafael Leira, Javier Ramos
  2018 EPS-UAM
@@ -14,6 +16,7 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 void handleSignal(int nsignal);
 
 pcap_t *descr = NULL;
+int flag_filtros[2] = {0,0};
 uint64_t contador = 0;
 uint8_t ipsrc_filter[IP_ALEN] = {NO_FILTER};
 uint8_t ipdst_filter[IP_ALEN] = {NO_FILTER};
@@ -97,6 +100,8 @@ int main(int argc, char **argv){
 				exit(ERROR);
 			}
 
+			flag_filtros[0] = 1 ; 
+			
 			break;
 
 		case '2' :
@@ -104,6 +109,8 @@ int main(int argc, char **argv){
 				printf("Error ipd_filtro. Ejecucion: %s /ruta/captura_pcap [-ipo IPO] [-ipd IPD] [-po PO] [-pd PD]: %d\n", argv[0], argc);
 				exit(ERROR);
 			}
+
+			flag_filtros[1] = 1 ; 
 
 			break;
 
@@ -281,26 +288,22 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 		ipsrc_filter_aux[i] = pack[i];
 	}
 
-	/* Se imprime la direccion ip(origen) formato 192.168.1.0 si coincide con el filtro o no hay*/
-	if( ipsrc_filter[0] != 0 && ipsrc_filter[1] != 0 && ipsrc_filter[2] != 0 && ipsrc_filter[3] != 0) {  	 /*Si no son todos 0 (caso en el que se le indica ningun filtro ipo)*/
-		if(ipsrc_filter[0] != ipsrc_filter_aux[0] || ipsrc_filter[1] != ipsrc_filter_aux[1] || ipsrc_filter[2] != ipsrc_filter_aux[2] || ipsrc_filter[3] != ipsrc_filter_aux[3]){ /*Si el filtro es diferente de la ip*/
-			printf("Las ip de origen no coincide con la ip origen del filtro\n");
-			printf("Direccion IP origen = ");
-			printf("%d", pack[0]);
-			for (i = 1; i < IP_ALEN; i++) {
-				printf(".%d", pack[i]);
-			}
-			printf("\n");
-			return;
-		}
-	}
-
+	/* Si no hay filtro o las IPs coinciden continuamos imprimiendo el resto de la informacion */
 	printf("Direccion IP origen = ");
 	printf("%d", pack[0]);
 	for (i = 1; i < IP_ALEN; i++) {
 		printf(".%d", pack[i]);
 	}
 	printf("\n");
+
+	/* Si hay un filtro -ipo que coincide con la ipo del paquete terminamos la impresion de ese paquete  */
+	if( flag_filtros[0] == 1 ) {  	 /* Si el filtro existe */
+		if(ipsrc_filter[0] != ipsrc_filter_aux[0] || ipsrc_filter[1] != ipsrc_filter_aux[1] || ipsrc_filter[2] != ipsrc_filter_aux[2] || ipsrc_filter[3] != ipsrc_filter_aux[3]){ /*Si el filtro es diferente de la ip*/
+			printf("La IP de origen del paquete no coincide con la IP origen del filtro\n");
+			printf("\n");
+			return;
+		}
+	}
 
 	pack+=IP_ALEN;
 
@@ -310,25 +313,21 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 		ipdst_filter_aux[i] = pack[i];
 	}
 
-	/* Se imprime la direccion ip(dest) formato 192.168.1.0 si coincide con el filtro o no hay*/
-	if( ipdst_filter[0] != 0 && ipdst_filter[1] != 0 && ipdst_filter[2] != 0 && ipdst_filter[3] != 0) {  	 /*Si no son todos 0 (caso en el que se le indica ningun filtro ipo)*/
-		if(ipdst_filter[0] != ipdst_filter_aux[0] || ipdst_filter[1] != ipdst_filter_aux[1] || ipdst_filter[2] != ipdst_filter_aux[2] || ipdst_filter[3] != ipdst_filter_aux[3]){ /*Si el filtro es diferente de la ip*/
-			printf("Direccion IP destino = ");
-			printf("%d", pack[0]);
-			for (i = 1; i < IP_ALEN; i++) {
-				printf(".%d", pack[i]);
-			}
-			printf("\n");
-			return;
-		}
-	}
-
 	printf("Direccion IP destino = ");
 	printf("%d", pack[0]);
 	for (i = 1; i < IP_ALEN; i++) {
 		printf(".%d", pack[i]);
 	}
 	printf("\n");
+
+	/* Si hay un filtro -ipd que coincide con la ipd del paquete terminamos la impresion de ese paquete  */
+	if( flag_filtros[1] == 1 ) {  	 /* existe el filtro de ipd */
+		if(ipdst_filter[0] != ipdst_filter_aux[0] || ipdst_filter[1] != ipdst_filter_aux[1] || ipdst_filter[2] != ipdst_filter_aux[2] || ipdst_filter[3] != ipdst_filter_aux[3]){ /*Si el filtro es diferente de la ip*/
+			printf("La IP de destino del paquete no coincide con la IP destino del filtro\n");
+			printf("\n");
+			return;
+		}
+	}
 
 	/* Imprimimos los campos del nivel 4 */
 	if( ihl-IP_ALEN*5 == 0 ){
@@ -338,23 +337,6 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 		pack+=IP_ALEN*2;
 	}
 
-	/* Se guarda el puerto origen que se va a comparar con el puerto origen del filtro*/
-	memcpy(&sport_filter_aux,  &pack[0], sizeof(uint16_t));
-	sport_filter_aux = ntohs(sport_filter_aux);
-
-	/* Se imprime el puerto origen si coincide con el puerto origen del filtro o no se ha introducido nada*/
-	if( sport_filter != 0) {
-		if(sport_filter_aux != sport_filter){
-			/* se imprime el numero de puerto de origen*/
-			if( memcpy(&memcpyAux,  &pack[0], sizeof(uint16_t)) == NULL ){
-				printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
-				return;
-			}
-			printf("puerto origen : %d \n", ntohs(memcpyAux) );
-			return;
-		}
-	}
-
 	/* se imprime el numero de puerto de origen*/
 	if( memcpy(&memcpyAux,  &pack[0], sizeof(uint16_t)) == NULL ){
 		printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
@@ -362,18 +344,14 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 	}
 	printf("puerto origen : %d \n", ntohs(memcpyAux) );
 
-	/* Se guarda el puerto destino que se va a comparar con el puerto destino del filtro*/
-	memcpy(&dport_filter_aux,  &pack[2], sizeof(uint16_t));
-	dport_filter_aux = ntohs(dport_filter_aux);
+	/* Se guarda el puerto origen que se va a comparar con el puerto origen del filtro*/
+	memcpy(&sport_filter_aux,  &pack[0], sizeof(uint16_t));
+	sport_filter_aux = ntohs(sport_filter_aux);
 
-	/* Se imprime el puerto destino si coincide con el puerto destino del filtro o no se ha introducido nada*/
-	if( dport_filter != 0) {
-		if(dport_filter_aux != dport_filter){
-			if( memcpy(&memcpyAux,  &pack[2], sizeof(uint16_t)) == NULL ){
-				printf("Fallo copia de memoria para memcpyAux en nivel 4 .\n");
-				return;
-			}
-			printf("puerto destino : %d \n", ntohs(memcpyAux) );
+	/* Se imprime el puerto origen si coincide con el puerto origen del filtro o no se ha introducido nada*/
+	if( sport_filter != 0) {
+		if(sport_filter_aux != sport_filter){
+			printf("El puerto de origen del paquete y el del filtro no coinciden.\n");
 			return;
 		}
 	}
@@ -383,6 +361,18 @@ void analizar_paquete(u_char *user,const struct pcap_pkthdr *hdr, const uint8_t 
 		return;
 	}
 	printf("puerto destino : %d \n", ntohs(memcpyAux) );
+
+	/* Se guarda el puerto destino que se va a comparar con el puerto destino del filtro*/
+	memcpy(&dport_filter_aux,  &pack[2], sizeof(uint16_t));
+	dport_filter_aux = ntohs(dport_filter_aux);
+
+	/* Se imprime el puerto destino si coincide con el puerto destino del filtro o no se ha introducido nada*/
+	if( dport_filter != 0) {
+		if(dport_filter_aux != dport_filter){
+			printf("El puerto de destino del paquete y el del filtro no coinciden.\n");
+			return;
+		}
+	}
 
 	pack+=IP_ALEN;
 
